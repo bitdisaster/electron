@@ -1339,5 +1339,13 @@ dist_zip("hunspell_dictionaries_zip") {
 }
 
 group("electron") {
-  public_deps = [ ":electron_app" ]
+  public_deps = [
+    ":electron_app",
+    "//electron/shell/browser/notifications/notification_helper:electron_notification_helper",
+  ]
 }
+# if(is_win) {
+#   group("notification_helper") {
+#     deps = [ "//electron/shell/browser/notifications/notification_helper:e_notification_helper" ]
+#   }
+# }
