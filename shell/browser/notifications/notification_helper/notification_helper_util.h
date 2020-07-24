@@ -10,7 +10,7 @@
 namespace notification_helper {
 
 // Returns the file path of chrome.exe if found, or an empty file path if not.
-base::FilePath GetChromeExePath();
+base::FilePath GetAppExePath();
 
 }  // namespace notification_helper
 

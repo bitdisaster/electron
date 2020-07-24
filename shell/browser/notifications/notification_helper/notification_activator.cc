@@ -14,8 +14,8 @@
 #include "base/strings/string16.h"
 #include "base/win/windows_types.h"
 #include "chrome/common/chrome_switches.h"
-#include "chrome/notification_helper/notification_helper_util.h"
-#include "chrome/notification_helper/trace_util.h"
+#include "electron/shell/browser/notifications/notification_helper/notification_helper_util.h"
+#include "electron/shell/browser/notifications/notification_helper/trace_util.h"
 
 namespace {
 
@@ -88,8 +88,8 @@ HRESULT NotificationActivator::Activate(
     const NOTIFICATION_USER_INPUT_DATA* data,
     ULONG count) {
   DebugBreak();
-  base::FilePath chrome_exe_path = GetChromeExePath();
-  if (chrome_exe_path.empty()) {
+  base::FilePath app_exe_path = GetAppExePath();
+  if (app_exe_path.empty()) {
     Trace(L"Failed to get App exe path\n");
     LogNotificationActivatorPrimaryStatus(
         NotificationActivatorPrimaryStatus::kChromeExeMissing);
@@ -131,7 +131,7 @@ HRESULT NotificationActivator::Activate(
   info.cbSize = sizeof(info);
   info.fMask =
       SEE_MASK_NOASYNC | SEE_MASK_FLAG_LOG_USAGE | SEE_MASK_NOCLOSEPROCESS;
-  info.lpFile = chrome_exe_path.value().c_str();
+  info.lpFile = app_exe_path.value().c_str();
   info.lpParameters = params.c_str();
   info.nShow = SW_SHOWNORMAL;
 
