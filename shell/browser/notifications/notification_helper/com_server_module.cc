@@ -18,6 +18,7 @@
 #include "base/metrics/histogram_macros.h"
 #include "base/stl_util.h"
 #include "electron/shell/browser/notifications/notification_helper/notification_activator.h"
+#include "electron/shell/browser/notifications/notification_helper/notification_helper_util.h"
 #include "electron/shell/browser/notifications/notification_helper/trace_util.h"
 
 namespace mswr = Microsoft::WRL;
@@ -66,15 +67,6 @@ HRESULT ComServerModule::Run() {
 }
 
 HRESULT ComServerModule::RegisterClassObjects() {
-  CLSID clsid;
-  // TODO: this needs to be acquired somehow from the main app
-  const wchar_t* toastActivatorClsid =
-      L"{23a5b06e-20bb-4e7e-a0ac-6982ed6a6041}";
-  HRESULT res = CLSIDFromString(toastActivatorClsid, &clsid);
-  if (res == NOERROR) {
-    Trace(L"GUID created %s", toastActivatorClsid);
-  }
-
   // Create an out-of-proc COM module with caching disabled. The supplied
   // method is invoked when the last instance object of the module is released.
   auto& module = mswr::Module<mswr::OutOfProcDisableCaching>::Create(
@@ -114,6 +106,13 @@ HRESULT ComServerModule::RegisterClassObjects() {
       std::extent<decltype(cookies_)>() == base::size(class_factories),
       "Arrays cookies_ and class_factories must be the same size.");
 
+  CLSID clsid = GetToastActivatorClsid();
+  if (clsid == GUID_NULL) {
+    Trace(
+        L"We couldnt find a valid CLSID. Most like this COM server is not "
+        L"registered.");
+    return E_NOINTERFACE;
+  }
   IID class_ids[] = {clsid};
   static_assert(std::extent<decltype(cookies_)>() == base::size(class_ids),
                 "Arrays cookies_ and class_ids must be the same size.");

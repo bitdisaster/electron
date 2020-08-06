@@ -87,7 +87,6 @@ HRESULT NotificationActivator::Activate(
     LPCWSTR invoked_args,
     const NOTIFICATION_USER_INPUT_DATA* data,
     ULONG count) {
-  DebugBreak();
   base::FilePath app_exe_path = GetAppExePath();
   if (app_exe_path.empty()) {
     Trace(L"Failed to get App exe path\n");

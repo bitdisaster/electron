@@ -25,8 +25,6 @@ extern "C" int WINAPI wWinMain(HINSTANCE instance,
   // Initialize the CommandLine singleton from the environment.
   base::CommandLine::Init(0, nullptr);
 
-  DebugBreak();
-
   // This process is designed to be launched by COM only, which appends the
   // "-Embedding" flag to the command line. If this flag is not found, the
   // process should exit immediately.
