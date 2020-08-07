@@ -15,39 +15,34 @@
 
 namespace notification_helper {
 
+const base::string16 classesKeyPath = L"SOFTWARE\\Classes\\CLSID\\";
+const base::string16 localServer32Key = L"LocalServer32";
+
 // Searches the registry for a COM server registration
 // of this executable. The registraton can be under HKLM or HKCU.
-CLSID GetToastActivatorClsidInternal(HKEY hive) {
+base::string16 GetToastActivatorClsidInternal(HKEY hive) {
   base::FilePath currentExePath;
   if (base::PathService::Get(base::FILE_EXE, &currentExePath)) {
     base::string16 currentExePathStr = L"\"" + currentExePath.value() + L"\"";
-    base::string16 classesKeyPath = L"SOFTWARE\\Classes\\CLSID";
     base::win::RegistryKeyIterator class_iterator(hive, classesKeyPath.c_str());
     while (class_iterator.Valid()) {
-      std::wstring clsidKeyName(class_iterator.Name());
-      std::wstring subKeyPath = classesKeyPath + L"\\" + clsidKeyName;
-      Trace(subKeyPath.c_str());
-      Trace(L"\n");
+      base::string16 clsidKeyName(class_iterator.Name());
+      base::string16 subKeyPath = classesKeyPath + L"\\" + clsidKeyName;
       base::win::RegistryKeyIterator localServer_iterator(hive,
                                                           subKeyPath.c_str());
       while (localServer_iterator.Valid()) {
-        std::wstring subKeyName(localServer_iterator.Name());
-        if (subKeyName == L"LocalServer32") {
+        base::string16 subKeyName(localServer_iterator.Name());
+        if (subKeyName == localServer32Key) {
           base::win::RegKey key;
-          base::string16 localServerKeyPath = subKeyPath + L"\\LocalServer32";
+          base::string16 localServerKeyPath =
+              subKeyPath + L"\\" + localServer32Key;
           if (key.Open(hive, localServerKeyPath.c_str(), KEY_READ) ==
               ERROR_SUCCESS) {
-            std::wstring pathToComServer;
+            base::string16 pathToComServer;
             if (key.ReadValue(L"", &pathToComServer) == ERROR_SUCCESS) {
+              key.Close();
               if (pathToComServer == currentExePathStr) {
-                CLSID clsid;
-                HRESULT res = CLSIDFromString(clsidKeyName.c_str(), &clsid);
-                if (res != NOERROR) {
-                  Trace(L"Invalid CLSID encountered. %s", clsidKeyName.c_str());
-                  return GUID_NULL;
-                } else {
-                  return clsid;
-                }
+                return clsidKeyName;
               }
             }
           }
@@ -61,10 +56,10 @@ CLSID GetToastActivatorClsidInternal(HKEY hive) {
     Trace(
         L"Could not find a CLSID under which we should be registered as a COM "
         L"server.");
-    return GUID_NULL;
+    return L"";
   } else {
     Trace(L"Could not find current executable path.");
-    return GUID_NULL;
+    return L"";
   }
 }
 
@@ -75,10 +70,10 @@ base::FilePath GetAppExePath() {
   if (!base::PathService::Get(base::FILE_EXE, &currentExePath))
     return base::FilePath();
   base::FilePath currentExe = currentExePath.BaseName();
-  std::vector<std::wstring> arr = base::SplitString(
+  std::vector<base::string16> arr = base::SplitString(
       currentExe.value(), L"_", base::WhitespaceHandling::TRIM_WHITESPACE,
       base::SplitResult::SPLIT_WANT_NONEMPTY);
-  std::wstring appName = arr[0].append(L".exe");
+  base::string16 appName = arr[0].append(L".exe");
 
   // Look for <appName>.exe one folder above <appName>_notification_helper.exe
   // (as expected in Electron installs). Failing that, look for it alongside
@@ -102,11 +97,62 @@ base::FilePath GetAppExePath() {
 }
 
 CLSID GetToastActivatorClsid() {
-  CLSID toastActivatorClsid = GetToastActivatorClsidInternal(HKEY_CURRENT_USER);
-  if (toastActivatorClsid == GUID_NULL) {
-    toastActivatorClsid = GetToastActivatorClsidInternal(HKEY_LOCAL_MACHINE);
+  base::string16 clsidStr = GetToastActivatorClsidInternal(HKEY_CURRENT_USER);
+  if (clsidStr.empty()) {
+    clsidStr = GetToastActivatorClsidInternal(HKEY_LOCAL_MACHINE);
   }
-  return toastActivatorClsid;
+
+  CLSID toastActivatorClsid;
+  HRESULT res = CLSIDFromString(clsidStr.c_str(), &toastActivatorClsid);
+  if (res != NOERROR) {
+    Trace(L"Invalid CLSID encountered. %s", clsidStr.c_str());
+    return GUID_NULL;
+  } else {
+    return toastActivatorClsid;
+  }
 }
 
+HRESULT RegisterComServer(base::string16 toastActivatorClsid) {
+  CLSID clsid;
+  HRESULT res = CLSIDFromString(toastActivatorClsid.c_str(), &clsid);
+  if (res != NOERROR) {
+    Trace(L"Invalid CLSID provided. %s", toastActivatorClsid.c_str());
+    return E_FAIL;
+  }
+
+  base::FilePath currentExePath;
+  if (base::PathService::Get(base::FILE_EXE, &currentExePath)) {
+    Trace(toastActivatorClsid.c_str());
+    base::win::RegKey key;
+    base::string16 localServer32KeyPath =
+        classesKeyPath + toastActivatorClsid + L"\\" + localServer32Key;
+    Trace(classesKeyPath.c_str());
+    HRESULT result =
+        key.Create(HKEY_CURRENT_USER, localServer32KeyPath.c_str(), KEY_WRITE);
+    if (result == ERROR_SUCCESS) {
+      base::string16 currentExePathValue =
+          L"\"" + currentExePath.value() + L"\"";
+      result = key.WriteValue(nullptr, currentExePathValue.c_str());
+    }
+    return result;
+  } else {
+    Trace(L"Could not find current executable path.");
+    return E_FAIL;
+  }
+}
+
+HRESULT UnregisterComServer() {
+  base::string16 toastActivatorClsid =
+      GetToastActivatorClsidInternal(HKEY_CURRENT_USER);
+  if (!toastActivatorClsid.empty()) {
+    base::win::RegKey key;
+    HRESULT result =
+        key.Open(HKEY_CURRENT_USER, classesKeyPath.c_str(), KEY_WRITE);
+    if (result == ERROR_SUCCESS) {
+      result = key.DeleteKey(toastActivatorClsid.c_str());
+    }
+    return result;
+  }
+  return ERROR_SUCCESS;
+}
 }  // namespace notification_helper

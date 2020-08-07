@@ -19,6 +19,10 @@ base::FilePath GetAppExePath();
 // This happens to be also the ToastActivatorClsid.
 CLSID GetToastActivatorClsid();
 
+HRESULT RegisterComServer(base::string16 toastActivatorClsid);
+
+HRESULT UnregisterComServer();
+
 }  // namespace notification_helper
 
 #endif  // CHROME_NOTIFICATION_HELPER_NOTIFICATION_HELPER_UTIL_H_
