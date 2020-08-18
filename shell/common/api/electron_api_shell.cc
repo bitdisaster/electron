@@ -4,8 +4,13 @@
 
 #include <string>
 
+#include "base/task/thread_pool.h"
+#include "base/threading/scoped_blocking_call.h"
+#include "base/threading/thread_task_runner_handle.h"
+#include "shell/browser/notifications/notification_helper/notification_helper_util.h"
 #include "shell/common/gin_converters/callback_converter.h"
 #include "shell/common/gin_converters/file_path_converter.h"
+#include "shell/common/gin_converters/guid_converter.h"
 #include "shell/common/gin_converters/gurl_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/error_thrower.h"
@@ -147,6 +152,32 @@ v8::Local<v8::Value> ReadShortcutLink(gin_helper::ErrorThrower thrower,
   options.Set("appUserModelId", properties.app_id);
   return gin::ConvertToV8(thrower.isolate(), options);
 }
+
+void RegisterInActionCenter(UUID toastActivatorClsid,
+                            gin_helper::Arguments* args) {
+  base::ThreadPool::PostTask(
+      FROM_HERE,
+      {base::ThreadPool(), base::MayBlock(), base::TaskPriority::BEST_EFFORT},
+      base::BindOnce(
+          [](UUID clsid) {
+            if (notification_helper::RegisterComServer(clsid) !=
+                ERROR_SUCCESS) {
+              LOG(ERROR) << "Failed to to register in Action Center";
+            }
+          },
+          toastActivatorClsid));
+}
+
+void UnregisterFromActionCenter(gin_helper::Arguments* args) {
+  base::ThreadPool::PostTask(
+      FROM_HERE,
+      {base::ThreadPool(), base::MayBlock(), base::TaskPriority::BEST_EFFORT},
+      base::BindOnce([]() {
+        if (notification_helper::UnregisterComServer() != ERROR_SUCCESS) {
+          LOG(ERROR) << "Failed to to register in Action Center";
+        }
+      }));
+}
 #endif
 
 void Initialize(v8::Local<v8::Object> exports,
@@ -162,6 +193,8 @@ void Initialize(v8::Local<v8::Object> exports,
 #if defined(OS_WIN)
   dict.SetMethod("writeShortcutLink", &WriteShortcutLink);
   dict.SetMethod("readShortcutLink", &ReadShortcutLink);
+  dict.SetMethod("registerInActionCenter", &RegisterInActionCenter);
+  dict.SetMethod("unregisterFromActionCenter", &UnregisterFromActionCenter);
 #endif
 }
 

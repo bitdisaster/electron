@@ -81,3 +81,20 @@ Returns [`ShortcutDetails`](structures/shortcut-details.md)
 Resolves the shortcut link at `shortcutPath`.
 
 An exception will be thrown when any error happens.
+
+### `shell.registerInActionCenter(toastActivatorClsid)` _Windows_
+
+* `toastActivatorClsid` String - A GUID representing the Toast Activator CLSID.
+
+Registers the App to participate in the Action Center with a `toastActivatorClsid`.
+The registration is necessary to enable activation via the Action Center such as
+click, reply, button clicks or multiple choices. The provided Toast Activator CLSID
+must also be used in tandem with App User Model Id written to a shortcut in the start menu.
+See [`ShortcutDetails`](structures/shortcut-details.md). The shortcut and Action Center
+registration are ideally created at install time and removed on uninstall. THis can also
+be achieved but common installer frameworks such as APPX or MSI.
+See details [`Win32 Notifications`]https://docs.microsoft.com/en-us/windows/uwp/design/shell/tiles-and-notifications/send-local-toast-desktop-cpp-wrl
+
+### `shell.unregisterInActionCenter()` _Windows_
+
+Removes the registration in Action Center. Should be called once on uninstall.

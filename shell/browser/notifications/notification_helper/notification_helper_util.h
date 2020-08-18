@@ -13,14 +13,18 @@ namespace notification_helper {
 
 // Returns the file path of the main App executable if found, or an empty file
 // path if not.
-base::FilePath GetAppExePath();
+base::FilePath GetElectronAppExePath();
 
 // Returns the CLSID under which this executable is registered as a COM server.
 // This happens to be also the ToastActivatorClsid.
 CLSID GetToastActivatorClsid();
 
-HRESULT RegisterComServer(base::string16 toastActivatorClsid);
+// Registers the notification helper as a COM server.
+// THis method is meant t be called from Electron.
+HRESULT RegisterComServer(CLSID toastActivatorClsid);
 
+// Unregisters the notification helper as a COM server.
+// THis method is meant t be called from Electron.
 HRESULT UnregisterComServer();
 
 }  // namespace notification_helper

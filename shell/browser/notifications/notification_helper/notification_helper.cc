@@ -15,7 +15,6 @@
 // #include "chrome/notification_helper/notification_helper_constants.h"
 // #include
 // "chrome/notification_helper/notification_helper_crash_reporter_client.h"
-#include "electron/shell/browser/notifications/notification_helper/notification_helper_util.h"
 #include "electron/shell/browser/notifications/notification_helper/trace_util.h"
 
 extern "C" int WINAPI wWinMain(HINSTANCE instance,
@@ -24,17 +23,6 @@ extern "C" int WINAPI wWinMain(HINSTANCE instance,
                                int show_command) {
   // Initialize the CommandLine singleton from the environment.
   base::CommandLine::Init(0, nullptr);
-
-  if (base::CommandLine::ForCurrentProcess()->HasSwitch("register")) {
-    base::string16 toastActivatorClsid =
-        base::CommandLine::ForCurrentProcess()->GetSwitchValueNative(
-            "register");
-    return notification_helper::RegisterComServer(toastActivatorClsid);
-  }
-
-  if (base::CommandLine::ForCurrentProcess()->HasSwitch("unregister")) {
-    return notification_helper::UnregisterComServer();
-  }
 
   // This process is designed to be launched by COM only, which appends the
   // "-Embedding" flag to the command line. If this flag is not found, the
