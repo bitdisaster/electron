@@ -7,6 +7,9 @@
 
 #if defined(OS_WIN)
 #include <rpc.h>
+
+#include "base/strings/sys_string_conversions.h"
+#include "base/win/win_util.h"
 #endif
 #include <string>
 
@@ -46,6 +49,14 @@ struct Converter<UUID> {
     return false;
 #else
     return false;
+#endif
+  }
+  static v8::Local<v8::Value> ToV8(v8::Isolate* isolate, UUID val) {
+#if defined(OS_WIN)
+    base::string16 uid = base::win::String16FromGUID(val);
+    return StringToV8(isolate, base::SysWideToUTF8(uid));
+#else
+    return v8::Null(isolate);
 #endif
   }
 };
